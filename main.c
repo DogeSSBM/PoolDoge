@@ -152,7 +152,7 @@ void drawStroke(const Stroke stroke)
             const u8 r = 255.0f *
                 fmin(cfDist(stroke.clickUp, stroke.clickDown), MAX_STROKE) / MAX_STROKE;
             setRGB(r, 0, 255-r);
-            cfTranslate(stroke.clickUp, stroke.clickDown)
+            cfTranslate(stroke.clickUp, stroke.clickDown);
             drawLineCoords(CfC(stroke.clickDown), mouse.pos);
             break;
         case S_CLICKU:
