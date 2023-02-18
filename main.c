@@ -72,11 +72,6 @@ Stroke updateStroke(Stroke stroke, const Ball ball)
     return stroke;
 }
 
-// float fmin(const float a, const float b)
-// {
-    // return a < b ? a : b;
-// }
-
 Ball hitBall(Ball ball, const Stroke stroke)
 {
     const char *stateStrs[] = {"S_HOVER", "S_CLICKD", "S_CLICKU", "S_WAIT"};
