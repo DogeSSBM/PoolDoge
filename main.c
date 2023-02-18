@@ -25,6 +25,12 @@ typedef struct{
     Coordf vel;
 }Ball;
 
+
+
+typedef struct{
+
+}Hole;
+
 void printStroke(const Stroke stroke)
 {
     const char *stateStrs[] = {"S_HOVER", "S_CLICKD", "S_CLICKU", "S_WAIT"};
@@ -40,7 +46,6 @@ void printStroke(const Stroke stroke)
 
 Stroke updateStroke(Stroke stroke, const Ball ball)
 {
-    // const StrokeState before = stroke.state;
     switch (stroke.state)
     {
     case S_HOVER:
@@ -76,8 +81,6 @@ Stroke updateStroke(Stroke stroke, const Ball ball)
         exit(-1);
         break;
     }
-    // if(before != stroke.state)
-    //     printStroke(stroke);
     return stroke;
 }
 
