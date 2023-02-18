@@ -1,6 +1,16 @@
 #ifndef VEC_H
 #define VEC_H
 
+float cfMax(const Coordf coordf)
+{
+    return fmax(coordf.x, coordf.y);
+}
+
+float cfMin(const Coordf coordf)
+{
+    return fmin(coordf.x, coordf.y);
+}
+
 float cfToRad(const Coordf coord)
 {
     return atan2f(coord.y, coord.x);
@@ -8,7 +18,7 @@ float cfToRad(const Coordf coord)
 
 float radToDeg(const float rad)
 {
-    return rad*(180.0f/PI);
+    return rad * (180.0f / PI);
 }
 
 float cfToDeg(const Coordf coord)
@@ -18,7 +28,7 @@ float cfToDeg(const Coordf coord)
 
 float degToRad(const float deg)
 {
-    return deg*(PI/180.0f);
+    return deg * (PI / 180.0f);
 }
 
 Coordf radToCf(const float rad)
@@ -43,10 +53,10 @@ Coord CfC(const Coordf coordf)
 
 float fclamp(const float n, const float min, const float max)
 {
-    if(n < min)
+    if (n < min)
         return min;
-    if(n >= max)
-        return max-1;
+    if (n >= max)
+        return max - 1;
     return n;
 }
 
@@ -57,34 +67,34 @@ bool finBound(const float n, const float min, const float max)
 
 float fwrap(const float n, const float min, const float max)
 {
-    const float size = max-min;
-    if(n < min)
-        return max-fabs(n);
-    if(n >= max)
-        return min+(float)((int)n%(int)size);
+    const float size = max - min;
+    if (n < min)
+        return max - fabs(n);
+    if (n >= max)
+        return min + (float)((int)n % (int)size);
     return n;
 }
 
 Coordf cfMul(const Coordf coord, const float num)
 {
-    return (const Coordf){.x = coord.x*num, .y = coord.y*num};
+    return (const Coordf){.x = coord.x * num, .y = coord.y * num};
 }
 
 Coordf cfDiv(const Coordf coord, const float num)
 {
-    if(num==0.0f)
+    if (num == 0.0f)
         return coord;
-    return (const Coordf){.x = coord.x/num, .y = coord.y/num};
+    return (const Coordf){.x = coord.x / num, .y = coord.y / num};
 }
 
 float cfDist(const Coordf coord1, const Coordf coord2)
 {
-    return sqrtf(powf(coord2.x-coord1.x,2.0f)+powf(coord2.y-coord1.y,2.0f));
+    return sqrtf(powf(coord2.x - coord1.x, 2.0f) + powf(coord2.y - coord1.y, 2.0f));
 }
 
 float cfMag(const Coordf coord)
 {
-    return sqrtf(coord.x*coord.x+coord.y*coord.y);
+    return sqrtf(coord.x * coord.x + coord.y * coord.y);
 }
 
 // creates a vector given angle in rads and a magnitude
@@ -104,14 +114,19 @@ Coordf cfNormalize(const Coordf coord)
     return cfDiv(coord, cfMag(coord));
 }
 
-Coordf cfTranslate(const Coordf coord, const Vectorf vec)
+Coordf cfAdd(const Coordf coord, const Vectorf vec)
 {
-    return (const Coordf){.x = coord.x+vec.x, .y = coord.y+vec.y};
+    return (const Coordf){.x = coord.x + vec.x, .y = coord.y + vec.y};
+}
+
+Coordf cfSub(const Coordf coord, const Vectorf vec)
+{
+    return (const Coordf){.x = coord.x - vec.x, .y = coord.y - vec.y};
 }
 
 bool fSameSign(const float num1, const float num2)
 {
-    return (num1<0.0f&&num2<0.0f)||(num1>=0.0f&&num2>=0.0f);
+    return (num1 < 0.0f && num2 < 0.0f) || (num1 >= 0.0f && num2 >= 0.0f);
 }
 
 Coordf cfNeg(const Coordf coord)
@@ -126,24 +141,24 @@ Coordf cfAbs(const Coordf coord)
 
 float cfCfToRad(const Coordf pos1, const Coordf pos2)
 {
-    return cfToRad(cfTranslate(pos2, cfNeg(pos1)));
+    return cfToRad(cfAdd(pos2, cfNeg(pos1)));
 }
 
 float cfCfToDeg(const Coordf pos1, const Coordf pos2)
 {
-    return cfToDeg(cfTranslate(cfNeg(pos1), pos2));
+    return cfToDeg(cfAdd(cfNeg(pos1), pos2));
 }
 
 float degReduce(const float deg)
 {
-    if(fabs(fmod(deg, 360.0f))>180.0f)
-        return -360.0f+fmod(deg, 360.0f);
+    if (fabs(fmod(deg, 360.0f)) > 180.0f)
+        return -360.0f + fmod(deg, 360.0f);
     return deg;
 }
 
 float degInv(const float deg)
 {
-    return -360.0f+deg;
+    return -360.0f + deg;
 }
 
 // takes a vertex and returns the angle between the 2 other points
