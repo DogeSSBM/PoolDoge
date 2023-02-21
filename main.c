@@ -51,6 +51,10 @@ void drawBalls(Ball *balls)
         if(!balls[i].isSunk){
             setColor(balls[i].color);
             fillCircleCoord(CfC(balls[i].pos), ROUND);
+            if(balls[i].type == B_STRIPE){
+                setColor(WHITE);
+                fillCircleCoord(CfC(balls[i].pos), ROUND/3);
+            }
         }
     }
 }
@@ -178,11 +182,15 @@ void updateBalls(Ball *balls, const Length window)
 
 void collide(Ball *a, Ball *b)
 {
+    const float ovrlap = 2*ROUND-cfDist(a->pos, b->pos);
     const Coordf normal = cfNormalize(cfSub(a->pos, b->pos));
+    a->pos = cfAdd(a->pos, cfMul(normal, ovrlap/2));
+    b->pos = cfSub(b->pos, cfMul(normal, ovrlap/2));
+
     const float athing = cfDot(normal, a->vel);
     const float bthing = cfDot(normal, b->vel);
-    const Coordf aperp = cfTimes(normal, (Coordf){.x=athing,.y=athing});
-    const Coordf bperp = cfTimes(normal, (Coordf){.x=bthing,.y=bthing});
+    const Coordf aperp = cfMul(normal, athing);
+    const Coordf bperp = cfMul(normal, bthing);
     a->vel = cfAdd(cfSub(a->vel, aperp), bperp);
     b->vel = cfAdd(cfSub(b->vel, bperp), aperp);
 }
