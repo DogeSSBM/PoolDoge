@@ -257,13 +257,14 @@ void initBalls(Ball *balls, const Length window)
     balls[0].vel = (const Coordf){0};
 
     uint i = 1;
+    const Coordf init = {.x=window.x*3.0f/4.0f, .y=window.y/2.0f};
     for(uint x = 0; x < 5; x++){
-        const Coordf posTop = {.x=window.x*3/4+ROUND*2*x-x*.5f, .y=window.y/2-ROUND*x};
+        const Coordf posTop = cfAdd(cfMul(degMagToCf(30.0f, ROUND*2.0f),x), init);
         for(uint y = 0; y <= x; y++){
             balls[i].pos.x = posTop.x;
-            balls[i].pos.y = posTop.y - y*2.3+ROUND*2*y;
+            balls[i].pos.y = posTop.y - ROUND*2*y;
             balls[i].num = i;
-            balls[i].type = i&1 ? B_SOLID : B_STRIPE;
+            balls[i].type = i&1 ? B_STRIPE : B_SOLID;
             i++;
         }
     }
