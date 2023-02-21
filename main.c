@@ -121,6 +121,7 @@ Ball hitBall(Ball ball, const Stroke stroke)
     const float ang = cfToRad(cfAdd(stroke.clickDown, cfNeg(stroke.clickUp)));
     const float power = fmin(cfDist(stroke.clickUp, stroke.clickDown), MAX_STROKE);
     ball.vel = radMagToCf(ang, power / MAX_STROKE * MAX_SPEED);
+    printf("stroke (%.3f, %.3f)\n", ball.vel.x, ball.vel.y);
     return ball;
 }
 
@@ -257,9 +258,10 @@ void initBalls(Ball *balls, const Length window)
 
     uint i = 1;
     for(uint x = 0; x < 5; x++){
-        const Coord posTop = {.x=2*x+window.x*3/4+ROUND*2*x, .y=window.y/2-ROUND*x};
+        const Coordf posTop = {.x=window.x*3/4+ROUND*2*x-x*.5f, .y=window.y/2-ROUND*x};
         for(uint y = 0; y <= x; y++){
-            balls[i].pos = CCf(coordShift(posTop, DIR_D, 4*y+ROUND*2*y));
+            balls[i].pos.x = posTop.x;
+            balls[i].pos.y = posTop.y - y*2.3+ROUND*2*y;
             balls[i].num = i;
             balls[i].type = i&1 ? B_SOLID : B_STRIPE;
             i++;
