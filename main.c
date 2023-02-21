@@ -176,13 +176,6 @@ void updateBalls(Ball *balls, const Length window)
     }
 }
 
-
-// mi the mass
-// vi the vector of velocity before collision
-// v'i the vector of velocity after collision
-// Oi the point of center
-// xi the vector of Oi position
-
 void collide(Ball *a, Ball *b)
 {
     const Coordf temp = {.x = a->vel.x, .y = a->vel.y};
@@ -292,8 +285,6 @@ int main(int argc, char const *argv[])
     Stroke stroke = {.strokenumber = 1};
     Ball balls[NUMBALLS] = {0};
     initBalls(balls, window);
-    // Ball ball1 = {.pos = CCf(coordShift(coordDiv(window,2),DIR_R,window.x/4))};
-    // Ball ball2 = {.pos = CCf(coordShift(coordDiv(window,2),DIR_L,window.x/4))};
     while(1){
         const uint t = frameStart();
 
