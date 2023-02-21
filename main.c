@@ -1,9 +1,10 @@
 #include "DogeLib/Includes.h"
-#define ROUND 8
-#define MAX_SPEED 12.0f
+#define ROUND 14
+#define NUMBALLS 16
+#define MAX_SPEED 32.0f
 #define MAX_STROKE 200.0f
 const Color HOLECOLOR = {200, 64, 0, 255};
-const Color GRASSCOLOR = {0, 128, 32, 255};
+const Color TABLECOLOR = {0, 128, 32, 255};
 
 typedef enum{
     S_HOVER,
@@ -20,16 +21,16 @@ typedef struct{
     uint strokenumber;
 }Stroke;
 
+typedef enum{B_CUE, B_SOLID, B_STRIPE}BallType;
+
 typedef struct{
+    BallType type;
+    bool isSunk;
+    uint num;
+    Color color;
     Coordf pos;
     Coordf vel;
 }Ball;
-
-
-
-typedef struct{
-
-}Hole;
 
 void printStroke(const Stroke stroke)
 {
@@ -44,7 +45,25 @@ void printStroke(const Stroke stroke)
     );
 }
 
-Stroke updateStroke(Stroke stroke, const Ball ball)
+void drawBalls(Ball *balls)
+{
+    for(uint i = 0; i < NUMBALLS; i++){
+        if(!balls[i].isSunk){
+            setColor(balls[i].color);
+            fillCircleCoord(CfC(balls[i].pos), ROUND);
+        }
+    }
+}
+
+bool ballsMoving(Ball *balls)
+{
+    for(uint i = 0; i < NUMBALLS; i++)
+        if(cfMax(balls[i].vel))
+            return true;
+    return false;
+}
+
+Stroke updateStroke(Stroke stroke, Ball *balls)
 {
     switch (stroke.state)
     {
@@ -72,7 +91,7 @@ Stroke updateStroke(Stroke stroke, const Ball ball)
         stroke.state = S_WAIT;
         break;
     case S_WAIT:
-        if(ball.vel.x || ball.vel.y)
+        if(ballsMoving(balls))
             break;
         stroke.state = S_HOVER;
         break;
@@ -101,16 +120,16 @@ Ball hitBall(Ball ball, const Stroke stroke)
     return ball;
 }
 
-Ball updateBall(Ball ball, const Length window)
+Ball ballWallBounce(Ball ball, const Length window)
 {
     if(ball.vel.x || ball.vel.y)
     {
         const Coordf newpos = cfAdd(ball.pos, ball.vel);
-        if(newpos.x >= window.x || newpos.x < 0)
+        if(newpos.x >= window.x-ROUND || newpos.x < ROUND)
         {
             ball.vel.x = -ball.vel.x;
         }
-        if(newpos.y >= window.y || newpos.y < 0)
+        if(newpos.y >= window.y-ROUND || newpos.y < ROUND)
         {
             ball.vel.y = -ball.vel.y;
         }
@@ -129,23 +148,64 @@ Ball updateBall(Ball ball, const Length window)
     return ball;
 }
 
-Coord randHole(const Length window)
+void updateBalls(Ball *balls, const Length window)
 {
-    return (const Coord){
-        .x = 100 + rand() % (window.x - 200),
-        .y = 100 + rand() % (window.y - 200)};
+    for(uint i = 0; i < NUMBALLS; i++){
+        if(balls[i].vel.x || balls[i].vel.y){
+            const Coordf newpos = cfAdd(balls[i].pos, balls[i].vel);
+            if(newpos.x >= window.x-ROUND || newpos.x < ROUND)
+            {
+                balls[i].vel.x = -balls[i].vel.x;
+            }
+            if(newpos.y >= window.y-ROUND || newpos.y < ROUND)
+            {
+                balls[i].vel.y = -balls[i].vel.y;
+            }
+            balls[i].pos = cfAdd(balls[i].pos, balls[i].vel);
+            const float ang = cfToRad(balls[i].vel);
+            float speed = cfMag(balls[i].vel);
+            if(speed < .02f)
+            {
+                balls[i].vel.x = 0;
+                balls[i].vel.y = 0;
+            }else{
+                speed = speed * .98f;
+                balls[i].vel = radMagToCf(ang, speed);
+            }
+        }
+    }
 }
 
-Ball randBall(const Length window, const Coord hole)
+
+// mi the mass
+// vi the vector of velocity before collision
+// v'i the vector of velocity after collision
+// Oi the point of center
+// xi the vector of Oi position
+
+void collide(Ball *a, Ball *b)
 {
-    Ball ball = {.pos = CCf(randHole(window))};
-    if(fabs(ball.pos.x - hole.x) < 200)
-        ball.pos.x = fclamp(
-            ball.pos.x < hole.x ? hole.x - 200 : hole.x + 200, 100.0f, window.x - 100);
-    if(fabs(ball.pos.y - hole.y) < 200)
-        ball.pos.y = fclamp(
-            ball.pos.y < hole.y ? hole.y - 200 : hole.y + 200, 100.0f, window.y - 100);
-    return ball;
+    const Coordf temp = {.x = a->vel.x, .y = a->vel.y};
+    a->vel.x = b->vel.x;
+    a->vel.y = b->vel.y;
+    b->vel.x = temp.x;
+    b->vel.y = temp.y;
+}
+
+uint collideBalls(Ball *balls)
+{
+    uint total = 0;
+    for(uint i = 0; i < NUMBALLS; i++){
+        for(uint j = 0; j < NUMBALLS; j++){
+            Ball *a = &balls[i];
+            Ball *b = &balls[(i+1+j)%NUMBALLS];
+            if(cfDist(cfAdd(a->pos, a->vel), cfAdd(b->pos, b->vel)) < ROUND*2){
+                collide(a, b);
+                total++;
+            }
+        }
+    }
+    return total;
 }
 
 void drawStroke(const Stroke stroke, const Coordf bpos)
@@ -185,21 +245,55 @@ bool ballHoled(const Coordf bpos, const Coord hpos)
     return cfMax(cfSub(bpos, CCf(hpos))) < ROUND;
 }
 
+void initBalls(Ball *balls, const Length window)
+{
+    balls[0].type = B_CUE;
+    balls[0].color = WHITE;
+    balls[0].pos = (const Coordf){.x=window.x/4, .y=window.y/2};
+    balls[0].vel = (const Coordf){0};
+
+    uint i = 1;
+    for(uint x = 0; x < 5; x++){
+        const Coord posTop = {.x=x+window.x*3/4+ROUND*2*x, .y=window.y/2-ROUND*x};
+        for(uint y = 0; y <= x; y++){
+            balls[i].pos = CCf(coordShift(posTop, DIR_D, 2*y+ROUND*2*y));
+            balls[i].num = i;
+            balls[i].type = i&1 ? B_SOLID : B_STRIPE;
+            i++;
+        }
+    }
+
+    balls[ 1].color = (const Color){255, 255,   0, 255};
+    balls[ 2].color = (const Color){  0,   0, 255, 255};
+    balls[ 3].color = (const Color){255,   0,   0, 255};
+    balls[ 4].color = (const Color){128,   0, 128, 255};
+    balls[ 5].color = (const Color){255, 165,   0, 255};
+    balls[ 6].color = (const Color){  0, 255,   0, 255};
+    balls[ 7].color = (const Color){128,   0,  32, 255};
+    balls[ 8].color = (const Color){  0,   0,   0, 255};
+    balls[ 9].color = (const Color){255, 255,   0, 255};
+    balls[10].color = (const Color){  0,   0, 255, 255};
+    balls[11].color = (const Color){255,   0,   0, 255};
+    balls[12].color = (const Color){128,   0, 128, 255};
+    balls[13].color = (const Color){255, 165,   0, 255};
+    balls[14].color = (const Color){  0, 255,   0, 255};
+    balls[15].color = (const Color){128,   0,  32, 255};
+}
+
 int main(int argc, char const *argv[])
 {
     (void)argc;
     (void)argv;
     init();
-    Length window = {.x = 1200, .y = 800};
+    Length window = {.x = 1200, .y = 600};
     setWindowLen(window);
-    gfx.defaultColor = GRASSCOLOR;
+    gfx.defaultColor = TABLECOLOR;
 
     Stroke stroke = {.strokenumber = 1};
-    Coord hole = randHole(window);
-    printf("hole (%i,%i)\n", hole.x, hole.y);
-    Ball ball = randBall(window, hole);
-    printf("ball (%f,%f)\n", ball.pos.x, ball.pos.y);
-
+    Ball balls[NUMBALLS] = {0};
+    initBalls(balls, window);
+    // Ball ball1 = {.pos = CCf(coordShift(coordDiv(window,2),DIR_R,window.x/4))};
+    // Ball ball2 = {.pos = CCf(coordShift(coordDiv(window,2),DIR_L,window.x/4))};
     while(1){
         const uint t = frameStart();
 
@@ -207,29 +301,15 @@ int main(int argc, char const *argv[])
             return 0;
         }
 
-        if(keyPressed(SDL_SCANCODE_R)){
-            hole = randHole(window);
-            ball = randBall(window, hole);
-        }
-
-        if(ballHoled(ball.pos, hole)){
-            printf("Sunk ball on stroke number %i\n", stroke.strokenumber);
-            printf("You are a good golfer dog!\n");
-            hole = randHole(window);
-            ball = randBall(window, hole);
-        }
-
         if(stroke.state == S_CLICKU)
-            ball = hitBall(ball, stroke);
-        stroke = updateStroke(stroke, ball);
-        ball = updateBall(ball, window);
+            balls[0] = hitBall(balls[0], stroke);
+        stroke = updateStroke(stroke, balls);
 
-        drawStroke(stroke, ball.pos);
+        collideBalls(balls);
+        updateBalls(balls, window);
 
-        setColor(HOLECOLOR);
-        fillCircleCoord(hole, ROUND);
-        setColor(WHITE);
-        fillCircleCoord(CfC(ball.pos), ROUND);
+        drawStroke(stroke, balls[0].pos);
+        drawBalls(balls);
 
         frameEnd(t);
     }

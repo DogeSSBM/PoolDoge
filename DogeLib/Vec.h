@@ -185,4 +185,14 @@ Coordf cfRotateDeg(const Coordf vec, const float d)
     return cfRotateRad(vec, degToRad(d));
 }
 
+Coordf cfMid(const Coordf coord1, const Coordf coord2)
+{
+    return (const Coordf){.x = (coord1.x+coord2.x)/2, .y = (coord1.y+coord2.y)/2};
+}
+
+float cfDot(const Coordf coord1, const Coordf coord2)
+{
+    return coord1.x * coord2.x + coord1.y * coord2.y;
+}
+
 #endif /* end of include guard: VEC_H */
