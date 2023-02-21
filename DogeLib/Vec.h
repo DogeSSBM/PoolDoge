@@ -119,6 +119,11 @@ Coordf cfAdd(const Coordf coord, const Vectorf vec)
     return (const Coordf){.x = coord.x + vec.x, .y = coord.y + vec.y};
 }
 
+Coordf cfTimes(const Coordf coord, const Vectorf vec)
+{
+    return (const Coordf){.x = coord.x * vec.x, .y = coord.y * vec.y};
+}
+
 Coordf cfSub(const Coordf coord, const Vectorf vec)
 {
     return (const Coordf){.x = coord.x - vec.x, .y = coord.y - vec.y};

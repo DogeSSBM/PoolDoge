@@ -178,21 +178,23 @@ void updateBalls(Ball *balls, const Length window)
 
 void collide(Ball *a, Ball *b)
 {
-    const Coordf temp = {.x = a->vel.x, .y = a->vel.y};
-    a->vel.x = b->vel.x;
-    a->vel.y = b->vel.y;
-    b->vel.x = temp.x;
-    b->vel.y = temp.y;
+    const Coordf normal = cfNormalize(cfSub(a->pos, b->pos));
+    const float athing = cfDot(normal, a->vel);
+    const float bthing = cfDot(normal, b->vel);
+    const Coordf aperp = cfTimes(normal, (Coordf){.x=athing,.y=athing});
+    const Coordf bperp = cfTimes(normal, (Coordf){.x=bthing,.y=bthing});
+    a->vel = cfAdd(cfSub(a->vel, aperp), bperp);
+    b->vel = cfAdd(cfSub(b->vel, bperp), aperp);
 }
 
 uint collideBalls(Ball *balls)
 {
     uint total = 0;
-    for(uint i = 0; i < NUMBALLS; i++){
-        for(uint j = 0; j < NUMBALLS; j++){
+    for(uint i = 0; i < NUMBALLS-1; i++){
+        for(uint j = i+1; j < NUMBALLS; j++){
             Ball *a = &balls[i];
-            Ball *b = &balls[(i+1+j)%NUMBALLS];
-            if(cfDist(cfAdd(a->pos, a->vel), cfAdd(b->pos, b->vel)) < ROUND*2){
+            Ball *b = &balls[j];
+            if(cfDist(cfAdd(a->pos, a->vel), cfAdd(b->pos, b->vel)) <= ROUND*2){
                 collide(a, b);
                 total++;
             }
@@ -247,9 +249,9 @@ void initBalls(Ball *balls, const Length window)
 
     uint i = 1;
     for(uint x = 0; x < 5; x++){
-        const Coord posTop = {.x=x+window.x*3/4+ROUND*2*x, .y=window.y/2-ROUND*x};
+        const Coord posTop = {.x=2*x+window.x*3/4+ROUND*2*x, .y=window.y/2-ROUND*x};
         for(uint y = 0; y <= x; y++){
-            balls[i].pos = CCf(coordShift(posTop, DIR_D, 2*y+ROUND*2*y));
+            balls[i].pos = CCf(coordShift(posTop, DIR_D, 4*y+ROUND*2*y));
             balls[i].num = i;
             balls[i].type = i&1 ? B_SOLID : B_STRIPE;
             i++;
