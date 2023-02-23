@@ -186,13 +186,36 @@ bool pocketBall(Ball *ball, const Coordf newpos)
     return false;
 }
 
-void pocketAndWallBalls(Ball *balls)
+uint pocketBalls(Ball *balls)
+{
+    uint total = 0;
+    for(uint i = 0; i < NUMBALLS; i++)
+        total+=pocketBall(&balls[i], cfAdd(balls[i].pos, balls[i].vel));
+    return total;
+}
+
+bool inWall(const Coord pos)
+{
+    return
+        pos.x>=WIN_X-WALL_LEN || pos.x<WALL_LEN ||
+        pos.y>=WIN_Y-WALL_LEN || pos.y<WALL_LEN;
+}
+
+Coordf toWall(Coordf pos, const float ang)
+{
+    if(inWall(CfC(pos)))
+        return pos;
+
+    Coordf prvc = pos;
+    for(float cur = 0; !inWall(CfC(pos = cfAdd(pos, radMagToCf(ang, cur)))); cur+=.25f)
+        prvc = pos;
+    return prvc;
+}
+
+void bounceWalls(Ball *balls)
 {
     for(uint i = 0; i < NUMBALLS; i++){
         const Coordf newpos = cfAdd(balls[i].pos, balls[i].vel);
-
-        if(pocketBall(&balls[i], newpos))
-            continue;
 
         if(newpos.x>=WIN_X-(BALL_RAD+WALL_LEN) || newpos.x<BALL_RAD+WALL_LEN){
             balls[i].vel.x = -balls[i].vel.x;
@@ -224,7 +247,6 @@ void updateBalls(Ball *balls)
 
 void collide(Ball *a, Ball *b, const float overlap)
 {
-    // const float ovrlap = 2*BALL_RAD-cfDist(a->pos, b->pos);
     const Coordf normal = cfNormalize(cfSub(a->pos, b->pos));
     a->pos = cfAdd(a->pos, cfMul(normal, overlap/2));
     b->pos = cfSub(b->pos, cfMul(normal, overlap/2));
@@ -279,8 +301,20 @@ void drawStroke(const Stroke stroke, const Coordf bpos)
             setRGB(r, 0, 255 - r);
             drawLineCoords(CfC(bpos), CfC(cfAdd(bpos, offset)));
 
+            Coordf fwd = cfNeg(offset);
+            const float ang = cfToRad(fwd);
+            const Coordf wall = toWall(bpos, ang);
             setColor(GREY);
-            drawLineCoords(CfC(bpos), CfC(cfAdd(cfMul(offset, -dist/48), bpos)));
+            drawLineCoords(CfC(bpos), CfC(wall));
+
+            Coordf dir = cfSub(wall, cfDiv(CCf(board), 2));
+            dir.x/=BOARD_X;
+            dir.y/=BOARD_Y;
+            if(fabs(dir.x)>fabs(dir.y))
+                fwd.x = -fwd.x;
+            else
+                fwd.y = -fwd.y;
+            drawLineCoords(CfC(wall), CfC(toWall(wall,cfToRad(fwd))));
 
             break;
         case S_CLICKU:
@@ -388,7 +422,6 @@ int main(int argc, char const *argv[])
             balls[0].isSunk = false;
         }
 
-
         if(stroke.state == S_CLICKU && !balls[0].isSunk)
             balls[0] = hitBall(balls[0], stroke);
 
@@ -396,7 +429,8 @@ int main(int argc, char const *argv[])
 
         updateBalls(balls);
         collideBalls(balls);
-        pocketAndWallBalls(balls);
+        pocketBalls(balls);
+        bounceWalls(balls);
 
         drawBoard();
         drawBalls(balls);
