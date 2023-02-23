@@ -119,6 +119,11 @@ Coordf cfAdd(const Coordf coord, const Vectorf vec)
     return (const Coordf){.x = coord.x + vec.x, .y = coord.y + vec.y};
 }
 
+Coordf cfAddf(const Coordf coord, const float f)
+{
+    return (const Coordf){.x = coord.x + f, .y = coord.y + f};
+}
+
 Coordf cfTimes(const Coordf coord, const Vectorf vec)
 {
     return (const Coordf){.x = coord.x * vec.x, .y = coord.y * vec.y};
@@ -127,6 +132,11 @@ Coordf cfTimes(const Coordf coord, const Vectorf vec)
 Coordf cfSub(const Coordf coord, const Vectorf vec)
 {
     return (const Coordf){.x = coord.x - vec.x, .y = coord.y - vec.y};
+}
+
+Coordf cfSubf(const Coordf coord, const float f)
+{
+    return (const Coordf){.x = coord.x - f, .y = coord.y - f};
 }
 
 bool fSameSign(const float num1, const float num2)
