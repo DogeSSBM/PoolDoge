@@ -30,14 +30,16 @@ typedef enum{
     S_CLICKD,
     S_CLICKU,
     S_WAIT,
+    S_PLACE,
     S_N
 }StrokeState;
 
 typedef struct{
+    uint turn;
     StrokeState state;
     Coordf clickDown;
     Coordf clickUp;
-    uint strokenumber;
+    bool canPlace;
 }Stroke;
 
 typedef enum{B_CUE, B_SOLID, B_STRIPE}BallType;
@@ -45,6 +47,7 @@ typedef enum{B_CUE, B_SOLID, B_STRIPE}BallType;
 typedef struct{
     BallType type;
     bool isSunk;
+    uint sunkTurn;
     uint num;
     Color color;
     Coordf pos;
@@ -86,6 +89,23 @@ bool ballsMoving(Ball *balls)
     return false;
 }
 
+bool validPlace(const Coord pos, Ball *balls)
+{
+    if(
+        pos.x >= WIN_X-(BALL_RAD+WALL_LEN) || pos.x < BALL_RAD+WALL_LEN ||
+        pos.y >= WIN_Y-(BALL_RAD+WALL_LEN) || pos.y < BALL_RAD+WALL_LEN
+    )
+        return false;
+    for(uint h = 0; h < 6; h++)
+        if(cfDist(CCf(pos), pockets[h]) < POCKET_RAD + BALL_RAD/4)
+            return false;
+
+    for(uint i = 1; i < NUMBALLS; i++)
+        if(!balls[i].isSunk && cfDist(CCf(pos), balls[i].pos) < BALL_RAD*2+1)
+            return false;
+    return true;
+}
+
 Stroke updateStroke(Stroke stroke, Ball *balls)
 {
     switch (stroke.state)
@@ -95,8 +115,6 @@ Stroke updateStroke(Stroke stroke, Ball *balls)
             stroke.state = S_CLICKD;
             stroke.clickDown = CCf(mouse.pos);
         }
-        setColor(GREY);
-        fillCircleCoord(mouse.pos, 8);
         break;
     case S_CLICKD:
         if(keyPressed(SDL_SCANCODE_ESCAPE)){
@@ -110,13 +128,21 @@ Stroke updateStroke(Stroke stroke, Ball *balls)
         }
         break;
     case S_CLICKU:
-        stroke.strokenumber++;
         stroke.state = S_WAIT;
         break;
     case S_WAIT:
         if(ballsMoving(balls))
             break;
-        stroke.state = S_HOVER;
+        stroke.state = balls[0].isSunk ? S_PLACE : S_HOVER;
+        stroke.turn++;
+        break;
+    case S_PLACE:
+        stroke.canPlace = validPlace(mouse.pos, balls);
+        if(stroke.canPlace && mouseBtnReleased(MOUSE_L)){
+            balls[0].pos = CCf(mouse.pos);
+            balls[0].isSunk = false;
+            stroke.state = S_HOVER;
+        }
         break;
     default:
         printf("wat\n");
@@ -129,10 +155,10 @@ Stroke updateStroke(Stroke stroke, Ball *balls)
 Ball hitBall(Ball ball, const Stroke stroke)
 {
     const char *stateStrs[] = {"S_HOVER", "S_CLICKD", "S_CLICKU", "S_WAIT"};
-    // if(ball.vel.x || ball.vel.y){
-        // printf("Attempted to hit ball while moving\n");
-        // exit(-1);
-    // }
+    if(ball.isSunk){
+        printf("Attempted to hit ball with isSunk = true\n");
+        exit(-1);
+    }
     if(stroke.state != S_CLICKU){
         printf("Attempted to hit ball while stroke.state = %s\n", stateStrs[stroke.state]);
         exit(-1);
@@ -144,10 +170,13 @@ Ball hitBall(Ball ball, const Stroke stroke)
     return ball;
 }
 
-bool pocketBall(Ball *ball)
+bool pocketBall(Ball *ball, const Coordf newpos)
 {
     for(uint h = 0; h < 6; h++){
-        if(cfDist(ball->pos, pockets[h]) < POCKET_RAD){
+        if(fmin(
+            cfDist(cfAdd(ball->pos, radMagToCf(cfToRad(ball->vel),cfMag(ball->vel)/2)), pockets[h]),
+            cfDist(newpos, pockets[h]
+        )) < POCKET_RAD){
             ball->isSunk = true;
             ball->vel.x = 0;
             ball->vel.y = 0;
@@ -157,12 +186,12 @@ bool pocketBall(Ball *ball)
     return false;
 }
 
-void wallBounceBalls(Ball *balls)
+void pocketAndWallBalls(Ball *balls)
 {
     for(uint i = 0; i < NUMBALLS; i++){
         const Coordf newpos = cfAdd(balls[i].pos, balls[i].vel);
 
-        if(pocketBall(&balls[i]))
+        if(pocketBall(&balls[i], newpos))
             continue;
 
         if(newpos.x>=WIN_X-(BALL_RAD+WALL_LEN) || newpos.x<BALL_RAD+WALL_LEN){
@@ -177,7 +206,7 @@ void wallBounceBalls(Ball *balls)
 void updateBalls(Ball *balls)
 {
     for(uint i = 0; i < NUMBALLS; i++){
-        if(balls[i].vel.x || balls[i].vel.y){
+        if(!balls[i].isSunk && cfMax(balls[i].vel)){
             balls[i].pos = cfAdd(balls[i].pos, balls[i].vel);
             const float ang = cfToRad(balls[i].vel);
             float speed = cfMag(balls[i].vel);
@@ -212,7 +241,11 @@ uint collideBalls(Ball *balls)
 {
     uint total = 0;
     for(uint i = 0; i < NUMBALLS-1; i++){
+        if(balls[i].isSunk)
+            continue;
         for(uint j = i+1; j < NUMBALLS; j++){
+            if(balls[j].isSunk)
+                continue;
             Ball *a = &balls[i];
             Ball *b = &balls[j];
             const float overlap = 2*BALL_RAD-cfDist(a->pos, b->pos);
@@ -230,7 +263,7 @@ void drawStroke(const Stroke stroke, const Coordf bpos)
     switch (stroke.state){
         case S_HOVER:
             setColor(GREY);
-            fillCircleCoord(mouse.pos, 8);
+            fillCircleCoord(mouse.pos, 4);
             break;
         case S_CLICKD:;
             const Coordf mpos = CCf(mouse.pos);
@@ -253,6 +286,10 @@ void drawStroke(const Stroke stroke, const Coordf bpos)
         case S_CLICKU:
             break;
         case S_WAIT:
+            break;
+        case S_PLACE:
+            setColor(stroke.canPlace ? GREY1 : (const Color){255,64,64,128});
+            fillCircleCoord(mouse.pos, BALL_RAD);
             break;
         default:
             printf("wat\n");
@@ -333,7 +370,7 @@ int main(int argc, char const *argv[])
     setWindowLen(window);
     setWindowResizable(false);
 
-    Stroke stroke = {.strokenumber = 1};
+    Stroke stroke = {.turn = 1};
     Ball balls[NUMBALLS] = {0};
     initBalls(balls);
     while(1){
@@ -351,13 +388,15 @@ int main(int argc, char const *argv[])
             balls[0].isSunk = false;
         }
 
-        if(stroke.state == S_CLICKU)
+
+        if(stroke.state == S_CLICKU && !balls[0].isSunk)
             balls[0] = hitBall(balls[0], stroke);
+
         stroke = updateStroke(stroke, balls);
 
         updateBalls(balls);
         collideBalls(balls);
-        wallBounceBalls(balls);
+        pocketAndWallBalls(balls);
 
         drawBoard();
         drawBalls(balls);
