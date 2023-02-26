@@ -75,12 +75,12 @@ float fwrap(const float n, const float min, const float max)
     return n;
 }
 
-Coordf cfMul(const Coordf coord, const float num)
+Coordf cfMulf(const Coordf coord, const float num)
 {
     return (const Coordf){.x = coord.x * num, .y = coord.y * num};
 }
 
-Coordf cfDiv(const Coordf coord, const float num)
+Coordf cfDivf(const Coordf coord, const float num)
 {
     if (num == 0.0f)
         return coord;
@@ -100,18 +100,18 @@ float cfMag(const Coordf coord)
 // creates a vector given angle in rads and a magnitude
 Coordf radMagToCf(const float rad, const float mag)
 {
-    return cfMul(radToCf(rad), mag);
+    return cfMulf(radToCf(rad), mag);
 }
 
 // creates a vector given angle in rads and a magnitude
 Coordf degMagToCf(const float deg, const float mag)
 {
-    return cfMul(radToCf(degToRad(deg)), mag);
+    return cfMulf(radToCf(degToRad(deg)), mag);
 }
 
 Coordf cfNormalize(const Coordf coord)
 {
-    return cfDiv(coord, cfMag(coord));
+    return cfDivf(coord, cfMag(coord));
 }
 
 Coordf cfAdd(const Coordf coord, const Vectorf vec)
@@ -124,7 +124,7 @@ Coordf cfAddf(const Coordf coord, const float f)
     return (const Coordf){.x = coord.x + f, .y = coord.y + f};
 }
 
-Coordf cfTimes(const Coordf coord, const Vectorf vec)
+Coordf cfMul(const Coordf coord, const Vectorf vec)
 {
     return (const Coordf){.x = coord.x * vec.x, .y = coord.y * vec.y};
 }

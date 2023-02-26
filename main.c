@@ -207,7 +207,7 @@ Coordf toWall(Coordf pos, const float ang)
         return pos;
 
     Coordf prvc = pos;
-    for(float cur = 0; !inWall(CfC(pos = cfAdd(pos, radMagToCf(ang, cur)))); cur+=.25f)
+    for(float cur = 0; !inWall(CfC(pos = cfAdd(pos, radMagToCf(ang, cur)))); cur+=.05f)
         prvc = pos;
     return prvc;
 }
@@ -248,13 +248,13 @@ void updateBalls(Ball *balls)
 void collide(Ball *a, Ball *b, const float overlap)
 {
     const Coordf normal = cfNormalize(cfSub(a->pos, b->pos));
-    a->pos = cfAdd(a->pos, cfMul(normal, overlap/2));
-    b->pos = cfSub(b->pos, cfMul(normal, overlap/2));
+    a->pos = cfAdd(a->pos, cfMulf(normal, overlap/2));
+    b->pos = cfSub(b->pos, cfMulf(normal, overlap/2));
 
     const float athing = cfDot(normal, a->vel);
     const float bthing = cfDot(normal, b->vel);
-    const Coordf aperp = cfMul(normal, athing);
-    const Coordf bperp = cfMul(normal, bthing);
+    const Coordf aperp = cfMulf(normal, athing);
+    const Coordf bperp = cfMulf(normal, bthing);
     a->vel = cfAdd(cfSub(a->vel, aperp), bperp);
     b->vel = cfAdd(cfSub(b->vel, bperp), aperp);
 }
@@ -293,7 +293,7 @@ void drawStroke(const Stroke stroke, const Coordf bpos)
             float dist = cfDist(stroke.clickDown, mpos);
 
             if(dist > MAX_STROKE){
-                offset = cfMul(offset, MAX_STROKE / dist);
+                offset = cfMulf(offset, MAX_STROKE / dist);
                 dist = MAX_STROKE;
             }
 
@@ -307,7 +307,7 @@ void drawStroke(const Stroke stroke, const Coordf bpos)
             setColor(GREY);
             drawLineCoords(CfC(bpos), CfC(wall));
 
-            Coordf dir = cfSub(wall, cfDiv(CCf(board), 2));
+            Coordf dir = cfSub(wall, cfDivf(CCf(board), 2));
             dir.x/=BOARD_X;
             dir.y/=BOARD_Y;
             if(fabs(dir.x)>fabs(dir.y))
@@ -349,7 +349,7 @@ void initBalls(Ball *balls)
     uint i = 1;
     const Coordf init = {.x=WIN_X*3.0f/4.0f, .y=WIN_Y/2.0f};
     for(uint x = 0; x < 5; x++){
-        const Coordf posTop = cfAdd(cfMul(degMagToCf(30.0f, BALL_RAD*2.0f),x), init);
+        const Coordf posTop = cfAdd(cfMulf(degMagToCf(30.0f, BALL_RAD*2.0f),x), init);
         for(uint y = 0; y <= x; y++){
             balls[i].pos.x = posTop.x;
             balls[i].pos.y = posTop.y - BALL_RAD*2*y;
